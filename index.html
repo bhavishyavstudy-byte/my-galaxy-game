@@ -22,8 +22,10 @@ canvas.height = 400;
 
 let score = 0;
 let gameActive = true;
+let obstacles = [];
+let frameCount = 0;
 
-// Player/Robot Object
+// Player/Robot Object (Original)
 const robot = {
     x: 50,
     y: 300,
@@ -35,36 +37,20 @@ const robot = {
     grounded: false
 };
 
-// Obstacles
-let obstacles = [];
-let frameCount = 0;
-
-function createObstacle() {
-    if (frameCount % 100 === 0) {
-        obstacles.push({
-            x: canvas.width,
-            y: 320,
-            width: 30,
-            height: 30,
-            color: "#ff4444"
-        });
-    }
-}
-
 function drawRobot() {
-    // --- THRUST EFFECT (Unique Cyan Smoke) ---
+    // 1. THRUST EFFECT (Sirf jump ke waqt piche se cyan bubbles)
     if (!robot.grounded) {
-        ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
-        for(let i = 0; i < 5; i++) {
+        ctx.fillStyle = "cyan";
+        for(let i = 0; i < 4; i++) {
             ctx.beginPath();
-            ctx.arc(robot.x - 5, robot.y + 35 + (Math.random() * 10), Math.random() * 6, 0, Math.PI * 2);
+            ctx.arc(robot.x - 8, robot.y + 35 + (Math.random() * 10), 4, 0, Math.PI * 2);
             ctx.fill();
         }
     }
 
-    // --- SKATEBOARD (The Base) ---
+    // 2. SKATEBOARD (Robot ke pairon ki jagah)
     ctx.fillStyle = "#333";
-    ctx.fillRect(robot.x - 10, robot.y + 35, 60, 8); // Board deck
+    ctx.fillRect(robot.x - 10, robot.y + 35, 60, 8); // Board
     
     // Wheels (Neon Pink)
     ctx.fillStyle = "#ff00ff";
@@ -73,22 +59,21 @@ function drawRobot() {
     ctx.arc(robot.x + 40, robot.y + 43, 5, 0, Math.PI * 2);
     ctx.fill();
 
-    // --- ROBOT BODY (Original Square Look) ---
+    // 3. YOUR ORIGINAL ROBOT (Grey square body)
     ctx.fillStyle = "#888"; 
-    ctx.fillRect(robot.x, robot.y, 40, 35); // Body
+    ctx.fillRect(robot.x, robot.y, 40, 35); 
     
-    // Visor (Neon Cyan)
+    // Eye/Visor
     ctx.fillStyle = "#00ffff";
     ctx.fillRect(robot.x + 20, robot.y + 8, 20, 6); 
 }
 
 function update() {
     if (!gameActive) return;
-
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     frameCount++;
 
-    // Gravity & Movement
+    // Gravity Logic
     robot.y += robot.dy;
     if (robot.y + robot.height < 350) {
         robot.dy += robot.gravity;
@@ -99,46 +84,42 @@ function update() {
         robot.grounded = true;
     }
 
-    // Draw Floor
+    // Ground Line
     ctx.strokeStyle = "#555";
-    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, 350 + 8);
-    ctx.lineTo(canvas.width, 350 + 8);
+    ctx.moveTo(0, 358);
+    ctx.lineTo(canvas.width, 358);
     ctx.stroke();
 
     drawRobot();
-    createObstacle();
 
-    // Obstacle Logic
+    // Obstacles logic (Simple Red Boxes)
+    if (frameCount % 90 === 0) {
+        obstacles.push({ x: canvas.width, y: 325, width: 25, height: 25 });
+    }
+
     for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= 5;
-        ctx.fillStyle = obstacles[i].color;
+        obstacles[i].x -= 6;
+        ctx.fillStyle = "red";
         ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
 
         // Collision Check
-        if (
-            robot.x < obstacles[i].x + obstacles[i].width &&
-            robot.x + 40 > obstacles[i].x &&
-            robot.y < obstacles[i].y + obstacles[i].height &&
-            robot.y + 40 > obstacles[i].y
-        ) {
+        if (robot.x < obstacles[i].x + 25 && robot.x + 40 > obstacles[i].x &&
+            robot.y < obstacles[i].y + 25 && robot.y + 40 > obstacles[i].y) {
             gameActive = false;
             alert("Game Over! Score: " + score);
             location.reload();
         }
 
-        if (obstacles[i].x + obstacles[i].width < 0) {
+        if (obstacles[i].x < -30) {
             obstacles.splice(i, 1);
             score++;
             document.getElementById("scoreBoard").innerText = "Score: " + score;
         }
     }
-
     requestAnimationFrame(update);
 }
 
-// Jump Control
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && robot.grounded) {
         robot.dy = -robot.jumpForce;
