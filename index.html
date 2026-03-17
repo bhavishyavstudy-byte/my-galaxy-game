@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Galaxy Skater - Pro Board Edition</title>
+    <title>Neon Galaxy Skater - New Droid Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -158,4 +158,96 @@ function update() {
         obstacles[i].x -= (3 + score * 0.05);
         if(robot.x + 10 < obstacles[i].x + obstacles[i].w && robot.x + robot.w - 10 > obstacles[i].x && (robot.y + 5 < obstacles[i].top || robot.y + robot.h - 5 > obstacles[i].bottom)) triggerGameOver();
         if(!obstacles[i].passed && obstacles[i].x < robot.x) { 
-            score++; obstacles[i].passed = true; document.getElementById("score-ui").innerText = score.toString().padStart(3, '0');
+            score++; obstacles[i].passed = true; document.getElementById("score-ui").innerText = score.toString().padStart(3, '0'); 
+        }
+        if(obstacles[i].x + obstacles[i].w < -50) obstacles.splice(i, 1);
+    }
+    if(robot.y + robot.h > canvas.height || robot.y < -50) triggerGameOver();
+    if(shake > 0) shake--;
+    frame++;
+}
+
+function draw() {
+    ctx.save();
+    if(shake > 0) ctx.translate(Math.random()*shake - shake/2, Math.random()*shake - shake/2);
+    ctx.fillStyle = "#02020a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    clouds.forEach(c => {
+        c.x -= c.s; if(c.x + c.r < 0) c.x = canvas.width + c.r;
+        let grd = ctx.createRadialGradient(c.x, c.y, 0, c.x, c.y, c.r);
+        grd.addColorStop(0, 'rgba(60, 0, 100, 0.15)');
+        grd.addColorStop(1, 'transparent');
+        ctx.fillStyle = grd; ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.fill();
+    });
+
+    ctx.fillStyle = "#fff";
+    stars.forEach(s => { s.x -= s.s * 0.5; if(s.x < 0) s.x = canvas.width; ctx.fillRect(s.x, s.y, s.size, s.size); });
+
+    if(!gameRunning) { ctx.restore(); requestAnimationFrame(draw); return; }
+
+    robot.trail.forEach((t, i) => {
+        ctx.fillStyle = t.type === 'thrust' ? `rgba(255, 255, 255, ${i/15})` : `rgba(0, 242, 255, ${i/15})`;
+        ctx.beginPath(); ctx.arc(t.x, t.y, i/3, 0, Math.PI*2); ctx.fill();
+    });
+
+    obstacles.forEach(o => {
+        ctx.fillStyle = "rgba(255, 0, 255, 0.15)";
+        ctx.fillRect(o.x, 0, o.w, o.top);
+        ctx.fillRect(o.x, o.bottom, o.w, canvas.height - o.bottom);
+        ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 3;
+        ctx.strokeRect(o.x, 0, o.w, o.top);
+        ctx.strokeRect(o.x, o.bottom, o.w, canvas.height - o.bottom);
+    });
+
+    // --- DRAW THE NEW ORANGE DROID ---
+    ctx.save();
+    let hoverY = Math.sin(robot.floatAnim) * 4;
+    ctx.translate(robot.x + robot.w/2, robot.y + robot.h/2 + hoverY);
+    ctx.rotate(robot.velY * 0.04);
+
+    ctx.fillStyle = "#00f2ff"; ctx.font = "900 10px Orbitron"; ctx.textAlign = "center";
+    ctx.fillText(customRobotName.toUpperCase(), 0, -40);
+
+    // Skateboard
+    ctx.shadowBlur = 10; ctx.shadowColor = "#ff00ff";
+    ctx.fillStyle = "#ff00ff"; ctx.beginPath(); ctx.roundRect(-25, 24, 50, 5, 4); ctx.fill();
+    ctx.shadowColor = "#00f2ff"; ctx.fillStyle = "#00f2ff";
+    ctx.beginPath(); ctx.arc(-15, 29, 3, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(15, 29, 3, 0, Math.PI*2); ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Body (White)
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.ellipse(0, 5, 16, 18, 0, 0, Math.PI*2); ctx.fill();
+    // Body Detail (Orange)
+    ctx.fillStyle = "#ff9900";
+    ctx.beginPath(); ctx.ellipse(0, 2, 12, 10, 0, 0, Math.PI, true); ctx.fill();
+
+    // Head (White)
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath(); ctx.arc(0, -15, 18, 0, Math.PI*2); ctx.fill();
+
+    // Face Plate (Dark Grey)
+    ctx.fillStyle = "#333333";
+    ctx.beginPath(); ctx.roundRect(-12, -22, 24, 14, 8); ctx.fill();
+
+    // Glowing Eyes (Blue Circles)
+    ctx.strokeStyle = "#00f2ff"; ctx.lineWidth = 2; ctx.shadowBlur = 5; ctx.shadowColor = "#00f2ff";
+    ctx.beginPath(); ctx.arc(-6, -15, 3.5, 0, Math.PI*2); ctx.stroke();
+    ctx.beginPath(); ctx.arc(6, -15, 3.5, 0, Math.PI*2); ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    // Head Details (Orange Ears/Headphones)
+    ctx.fillStyle = "#ff9900";
+    ctx.beginPath(); ctx.ellipse(-18, -15, 5, 10, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(18, -15, 5, 10, 0, 0, Math.PI*2); ctx.fill();
+
+    ctx.restore(); ctx.restore();
+    update();
+    requestAnimationFrame(draw);
+}
+draw();
+</script>
+</body>
+</html>
