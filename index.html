@@ -3,136 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cyber Skater Robot</title>
+    <title>Robot Skateboard Game</title>
     <style>
-        body { margin: 0; overflow: hidden; background: #0a0a0a; font-family: 'Courier New', Courier, monospace; }
-        canvas { display: block; background: linear-gradient(to bottom, #121212, #222); }
-        #ui { position: absolute; top: 10px; left: 10px; color: #00ffcc; font-weight: bold; font-size: 20px; }
+        body { margin: 0; background: #222; overflow: hidden; font-family: sans-serif; }
+        canvas { display: block; background: #111; margin: 0 auto; }
+        #scoreBoard { position: absolute; top: 10px; left: 20px; color: white; font-size: 24px; }
     </style>
 </head>
 <body>
-    <div id="ui">SCORE: <span id="score">0</span></div>
+    <div id="scoreBoard">Score: 0</div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const scoreElement = document.getElementById("score");
-
-canvas.width = window.innerWidth;
-canvas.height = window.innerHeight;
+canvas.width = 800;
+canvas.height = 400;
 
 let score = 0;
-let gameSpeed = 5;
-let particles = [];
+let gameActive = true;
 
-// Robot/Player Object
+// Player/Robot Object
 const robot = {
-    x: 100,
-    y: canvas.height - 150,
-    width: 50,
-    height: 60,
+    x: 50,
+    y: 300,
+    width: 40,
+    height: 40,
     dy: 0,
-    jumpForce: 15,
-    gravity: 0.8,
-    grounded: false,
-    color: "#00ffcc"
+    jumpForce: 12,
+    gravity: 0.6,
+    grounded: false
 };
 
-// Thrust Particles logic
-class Particle {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.size = Math.random() * 5 + 2;
-        this.speedX = Math.random() * -3 - 1;
-        this.speedY = Math.random() * 2 - 1;
-        this.color = `hsla(${Math.random() * 30 + 180}, 100%, 50%, 0.8)`; // Cyan/Blue thrust
-    }
-    update() {
-        this.x += this.speedX;
-        this.y += this.speedY;
-        if (this.size > 0.2) this.size -= 0.1;
-    }
-    draw() {
-        ctx.fillStyle = this.color;
-        ctx.beginPath();
-        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
-        ctx.fill();
+// Obstacles
+let obstacles = [];
+let frameCount = 0;
+
+function createObstacle() {
+    if (frameCount % 100 === 0) {
+        obstacles.push({
+            x: canvas.width,
+            y: 320,
+            width: 30,
+            height: 30,
+            color: "#ff4444"
+        });
     }
 }
 
 function drawRobot() {
-    // 1. SKATEBOARD (The Base)
-    ctx.fillStyle = "#333";
-    ctx.roundRect(robot.x - 5, robot.y + 45, 60, 10, 5); // Board deck
-    ctx.fill();
-    
-    // Glowing Wheels
-    ctx.fillStyle = "#ff00ff"; // Neon Pink wheels
-    ctx.beginPath();
-    ctx.arc(robot.x + 5, robot.y + 55, 6, 0, Math.PI * 2);
-    ctx.arc(robot.x + 45, robot.y + 55, 6, 0, Math.PI * 2);
-    ctx.fill();
-
-    // 2. ROBOT BODY (Metallic Look)
-    ctx.fillStyle = "#888"; 
-    ctx.fillRect(robot.x + 5, robot.y, 40, 45); 
-    
-    // 3. NEON VISOR (The Eyes)
-    ctx.shadowBlur = 15;
-    ctx.shadowColor = "#00ffff";
-    ctx.fillStyle = "#00ffff";
-    ctx.fillRect(robot.x + 25, robot.y + 10, 20, 8);
-    ctx.shadowBlur = 0; // Reset shadow
-
-    // 4. THRUST EFFECT (Back of the board)
-    if (!robot.grounded || Math.random() > 0.5) {
-        particles.push(new Particle(robot.x - 5, robot.y + 50));
-    }
-}
-
-function handleParticles() {
-    for (let i = 0; i < particles.length; i++) {
-        particles[i].update();
-        particles[i].draw();
-        if (particles[i].size <= 0.3) {
-            particles.splice(i, 1);
-            i--;
+    // --- THRUST EFFECT (Unique Cyan Smoke) ---
+    if (!robot.grounded) {
+        ctx.fillStyle = "rgba(0, 255, 255, 0.5)";
+        for(let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.arc(robot.x - 5, robot.y + 35 + (Math.random() * 10), Math.random() * 6, 0, Math.PI * 2);
+            ctx.fill();
         }
     }
+
+    // --- SKATEBOARD (The Base) ---
+    ctx.fillStyle = "#333";
+    ctx.fillRect(robot.x - 10, robot.y + 35, 60, 8); // Board deck
+    
+    // Wheels (Neon Pink)
+    ctx.fillStyle = "#ff00ff";
+    ctx.beginPath();
+    ctx.arc(robot.x, robot.y + 43, 5, 0, Math.PI * 2);
+    ctx.arc(robot.x + 40, robot.y + 43, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    // --- ROBOT BODY (Original Square Look) ---
+    ctx.fillStyle = "#888"; 
+    ctx.fillRect(robot.x, robot.y, 40, 35); // Body
+    
+    // Visor (Neon Cyan)
+    ctx.fillStyle = "#00ffff";
+    ctx.fillRect(robot.x + 20, robot.y + 8, 20, 6); 
 }
 
-// Simple Physics
 function update() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!gameActive) return;
 
-    // Gravity logic
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    frameCount++;
+
+    // Gravity & Movement
     robot.y += robot.dy;
-    if (robot.y + robot.height < canvas.height - 50) {
+    if (robot.y + robot.height < 350) {
         robot.dy += robot.gravity;
         robot.grounded = false;
     } else {
-        robot.y = canvas.height - 50 - robot.height;
+        robot.y = 350 - robot.height;
         robot.dy = 0;
         robot.grounded = true;
     }
 
-    handleParticles();
-    drawRobot();
-
-    // Floor Line
-    ctx.strokeStyle = "#444";
+    // Draw Floor
+    ctx.strokeStyle = "#555";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.moveTo(0, canvas.height - 50);
-    ctx.lineTo(canvas.width, canvas.height - 50);
+    ctx.moveTo(0, 350 + 8);
+    ctx.lineTo(canvas.width, 350 + 8);
     ctx.stroke();
+
+    drawRobot();
+    createObstacle();
+
+    // Obstacle Logic
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= 5;
+        ctx.fillStyle = obstacles[i].color;
+        ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].width, obstacles[i].height);
+
+        // Collision Check
+        if (
+            robot.x < obstacles[i].x + obstacles[i].width &&
+            robot.x + 40 > obstacles[i].x &&
+            robot.y < obstacles[i].y + obstacles[i].height &&
+            robot.y + 40 > obstacles[i].y
+        ) {
+            gameActive = false;
+            alert("Game Over! Score: " + score);
+            location.reload();
+        }
+
+        if (obstacles[i].x + obstacles[i].width < 0) {
+            obstacles.splice(i, 1);
+            score++;
+            document.getElementById("scoreBoard").innerText = "Score: " + score;
+        }
+    }
 
     requestAnimationFrame(update);
 }
 
-// Controls
+// Jump Control
 window.addEventListener("keydown", (e) => {
     if (e.code === "Space" && robot.grounded) {
         robot.dy = -robot.jumpForce;
