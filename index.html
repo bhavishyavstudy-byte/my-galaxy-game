@@ -1,167 +1,199 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Robot Skateboard Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Neon Galaxy Skater - Bhavishya Kumar</title>
     <style>
-        body { margin: 0; background: #222; overflow: hidden; font-family: sans-serif; }
-        canvas { display: block; background: #111; margin: 0 auto; }
-        #scoreBoard { position: absolute; top: 10px; left: 20px; color: white; font-size: 24px; }
-        
-        /* Countdown Overlay */
-        #overlay {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; justify-content: center; align-items: center;
-            background: rgba(0,0,0,0.6); z-index: 10;
-        }
-        #msg { font-size: 100px; color: #ff00ff; font-weight: bold; }
-        #reviveBtn { 
-            display: none; padding: 15px 30px; font-size: 20px; 
-            background: #00ffcc; border: none; border-radius: 10px; cursor: pointer; 
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
+        * { box-sizing: border-box; touch-action: manipulation; }
+        body { margin: 0; overflow: hidden; background: #02020a; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Orbitron', sans-serif; }
+        canvas { max-width: 100vw; max-height: 100vh; border: 2px solid #00f2ff; box-shadow: 0 0 30px rgba(0, 242, 255, 0.2); border-radius: 10px; background: #000; }
+        .overlay { position: absolute; width: 100%; max-width: 400px; height: 100%; max-height: 600px; background: radial-gradient(circle, rgba(0,20,40,0.98) 0%, rgba(2,2,10,1) 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; color: white; padding: 20px; }
+        .logo-wrap { position: relative; width: 120px; height: 120px; margin-bottom: 10px; animation: float 4s ease-in-out infinite; }
+        .skater-icon { width: 70px; height: 70px; border: 5px solid #00f2ff; border-right-color: transparent; border-radius: 50%; position: absolute; top: 15px; left: 25px; box-shadow: 0 0 20px #00f2ff; transform: rotate(-20deg); }
+        .skater-icon::after { content: ''; position: absolute; width: 90px; height: 8px; background: #ff00ff; bottom: -15px; left: -10px; border-radius: 10px; box-shadow: 0 0 20px #ff00ff; }
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
+        h1 { font-size: 24px; margin: 5px 0; color: #00f2ff; text-shadow: 0 0 10px #00f2ff; }
+        .developer-tag { font-size: 10px; letter-spacing: 3px; color: #ff00ff; margin-bottom: 25px; font-weight: 900; text-shadow: 0 0 10px #ff00ff; }
+        .btn { background: #00f2ff; color: #000; padding: 15px 0; border: none; font-family: 'Orbitron'; font-weight: 900; cursor: pointer; margin: 8px; border-radius: 8px; transition: 0.3s; font-size: 14px; width: 85%; max-width: 250px; box-shadow: 0 5px 0 #008ba3; }
+        .btn:active { transform: translateY(4px); box-shadow: none; }
+        #robot-name-input { background: rgba(255,255,255,0.05); border: 2px solid #ff00ff; color: #fff; padding: 10px; font-family: 'Orbitron'; text-align: center; border-radius: 8px; width: 80%; max-width: 210px; font-size: 16px; margin-top: 5px; }
+        #score-ui { position: absolute; top: 15px; color: #00f2ff; font-size: 24px; font-weight: 900; z-index: 5; text-shadow: 0 0 10px #00f2ff; }
     </style>
 </head>
 <body>
-    <div id="scoreBoard">Score: 0</div>
-    
-    <div id="overlay">
-        <div id="msg">3</div>
-        <button id="reviveBtn">REVIVE PLAYER</button>
+
+    <div id="start-screen" class="overlay">
+        <div class="logo-wrap"><div class="skater-icon"></div></div>
+        <h1>GALAXY SKATER</h1>
+        <div class="developer-tag">BY BHAVISHYA KUMAR</div>
+        <input type="text" id="robot-name-input" maxlength="12" placeholder="ROBOT ID">
+        <br>
+        <button class="btn" onclick="startGame()">START GAME</button>
     </div>
 
+    <div id="death-screen" class="overlay" style="display: none;">
+        <h2 style="color:#ff00ff;">SYSTEM CRASHED</h2>
+        <p>SCORE: <span id="current-score-text" style="color:#00f2ff">0</span></p>
+        <div id="menu-buttons">
+            <button id="revive-btn" class="btn" style="background:#ff00ff; color:white; box-shadow: 0 5px 0 #b300b3;" onclick="startAdTimer()">REVIVE (AD)</button>
+            <button class="btn" onclick="hardReset()">RETRY</button>
+            <button class="btn" style="background:#222; color:#00f2ff;" onclick="goToMainMenu()">MENU</button>
+        </div>
+        <div id="ad-box" style="display:none">
+            <p>REBOOTING SYSTEMS...</p>
+            <div id="timer-num" style="font-size: 40px; color: #fff;">3</div>
+        </div>
+    </div>
+
+    <div id="score-ui">000</div>
     <canvas id="gameCanvas"></canvas>
 
 <script>
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
-const msgDisplay = document.getElementById("msg");
-const overlay = document.getElementById("overlay");
-const reviveBtn = document.getElementById("reviveBtn");
+const startScreen = document.getElementById("start-screen");
+const deathScreen = document.getElementById("death-screen");
+const menuButtons = document.getElementById("menu-buttons");
+const adBox = document.getElementById("ad-box");
+const nameInput = document.getElementById("robot-name-input");
 
-canvas.width = 800;
-canvas.height = 400;
+canvas.width = 400;
+canvas.height = 600;
 
-let score = 0;
-let gameActive = false; // Start false for countdown
-let obstacles = [];
-let frameCount = 0;
+let customRobotName = localStorage.getItem("galaxyRobotName") || "Robot-X";
+nameInput.value = customRobotName;
 
-const robot = {
-    x: 50, y: 300, width: 40, height: 40, dy: 0,
-    jumpForce: 12, gravity: 0.6, grounded: false
-};
+let gravity = 0.35;
+let jump = -7.5;
+let robot = { x: 70, y: 250, w: 40, h: 35, velY: 0, trail: [], thrustActive: 0 };
+let obstacles = [], stars = [], frame = 0, score = 0, gameOver = false, gameRunning = false, canRevive = true;
 
-// --- 1. COUNTDOWN SYSTEM (3 2 1) ---
-function startCountdown() {
-    let count = 3;
-    gameActive = false;
-    overlay.style.display = "flex";
-    reviveBtn.style.display = "none";
-    msgDisplay.style.display = "block";
-    
-    let timer = setInterval(() => {
-        msgDisplay.innerText = count;
-        if(count === 0) {
-            clearInterval(timer);
-            overlay.style.display = "none";
-            gameActive = true;
-            update();
+for(let i=0; i<60; i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, s: Math.random()*2 });
+
+function startGame() {
+    customRobotName = nameInput.value.trim() || "Robot-X";
+    localStorage.setItem("galaxyRobotName", customRobotName);
+    startScreen.style.display = "none";
+    gameRunning = true;
+    hardReset();
+}
+
+function goToMainMenu() { deathScreen.style.display = "none"; startScreen.style.display = "flex"; gameRunning = false; }
+
+function handleInput(e) {
+    if (!gameRunning || gameOver) return;
+    if (e.cancelable) e.preventDefault();
+    robot.velY = jump;
+    robot.thrustActive = 10;
+}
+
+window.addEventListener("keydown", (e) => { if(e.code === "Space") handleInput(e); });
+canvas.addEventListener("touchstart", handleInput, {passive: false});
+canvas.addEventListener("mousedown", handleInput);
+
+function triggerGameOver() {
+    if (gameOver) return;
+    gameOver = true;
+    document.getElementById("current-score-text").innerText = score;
+    deathScreen.style.display = "flex";
+    menuButtons.style.display = "block";
+    adBox.style.display = "none";
+    document.getElementById("revive-btn").style.display = (canRevive && score > 0) ? "inline-block" : "none";
+}
+
+function startAdTimer() {
+    menuButtons.style.display = "none";
+    adBox.style.display = "block";
+    let t = 3;
+    document.getElementById("timer-num").innerText = t;
+    let inv = setInterval(() => {
+        t--;
+        document.getElementById("timer-num").innerText = t;
+        if(t <= 0) { 
+            clearInterval(inv); 
+            revivePlayer(); 
         }
-        count--;
     }, 1000);
 }
 
-// --- 2. FIX REVIVE ERROR (No more sticking) ---
-reviveBtn.onclick = () => {
-    obstacles = []; // Rasta saaf karo
-    robot.y = 300; 
-    robot.dy = 0;
-    startCountdown(); // Revive ke baad phir se 3 2 1
-};
+function revivePlayer() {
+    deathScreen.style.display = "none";
+    robot.y = 250;
+    robot.velY = 0;
+    obstacles = []; 
+    gameOver = false; 
+    canRevive = false; // Sirf ek baar revive allowed
+}
 
-function drawRobot() {
-    if (!robot.grounded) {
-        ctx.fillStyle = "cyan";
-        for(let i=0; i<3; i++) {
-            ctx.beginPath();
-            ctx.arc(robot.x-5, robot.y+35+(Math.random()*8), 5, 0, Math.PI*2);
-            ctx.fill();
-        }
-    }
-    // Skateboard
-    ctx.fillStyle = "#333";
-    ctx.fillRect(robot.x-10, robot.y+35, 60, 8);
-    ctx.fillStyle = "#ff00ff";
-    ctx.beginPath();
-    ctx.arc(robot.x, robot.y+43, 5, 0, Math.PI*2);
-    ctx.arc(robot.x+40, robot.y+43, 5, 0, Math.PI*2);
-    ctx.fill();
-    // Robot Body
-    ctx.fillStyle = "#888";
-    ctx.fillRect(robot.x, robot.y, 40, 35);
-    ctx.fillStyle = "#00ffff";
-    ctx.fillRect(robot.x+20, robot.y+8, 20, 6);
+function hardReset() {
+    deathScreen.style.display = "none";
+    score = 0; 
+    document.getElementById("score-ui").innerText = "000";
+    robot.y = 250; robot.velY = 0; robot.trail = []; obstacles = []; frame = 0; 
+    gameOver = false; 
+    canRevive = true;
 }
 
 function update() {
-    if (!gameActive) return;
-
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    frameCount++;
-
-    robot.y += robot.dy;
-    if (robot.y + robot.height < 350) {
-        robot.dy += robot.gravity;
-        robot.grounded = false;
-    } else {
-        robot.y = 350 - robot.height;
-        robot.dy = 0;
-        robot.grounded = true;
+    if(!gameRunning || gameOver) return;
+    robot.velY += gravity;
+    robot.y += robot.velY;
+    robot.trail.push({x: robot.x, y: robot.y + 25, type: robot.thrustActive > 0 ? 'thrust' : 'normal'});
+    if(robot.trail.length > 15) robot.trail.shift();
+    if(robot.thrustActive > 0) robot.thrustActive--;
+    
+    if(frame % 95 === 0) {
+        let gap = 180;
+        let pos = Math.random() * (canvas.height - gap - 140) + 70;
+        obstacles.push({ x: canvas.width, top: pos, bottom: pos + gap, w: 60, passed: false });
     }
-
-    drawRobot();
-
-    if (frameCount % 100 === 0) {
-        obstacles.push({ x: canvas.width, y: 325, w: 25, h: 25 });
-    }
-
     for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= 6;
-        ctx.fillStyle = "red";
-        ctx.fillRect(obstacles[i].x, obstacles[i].y, obstacles[i].w, obstacles[i].h);
-
-        // COLLISION CHECK
-        if (robot.x < obstacles[i].x + obstacles[i].w && 
-            robot.x + 40 > obstacles[i].x &&
-            robot.y < obstacles[i].y + obstacles[i].h && 
-            robot.y + 40 > obstacles[i].y) {
-            
-            // Player mar gaya
-            gameActive = false;
-            overlay.style.display = "flex";
-            msgDisplay.style.display = "none";
-            reviveBtn.style.display = "block"; // Revive button dikhao
-            return; 
-        }
-
-        if (obstacles[i].x < -30) {
-            obstacles.splice(i, 1);
-            score++;
-            document.getElementById("scoreBoard").innerText = "Score: " + score;
-        }
+        obstacles[i].x -= (3 + score * 0.1);
+        if(robot.x + 10 < obstacles[i].x + obstacles[i].w && robot.x + robot.w - 10 > obstacles[i].x && (robot.y + 5 < obstacles[i].top || robot.y + robot.h - 5 > obstacles[i].bottom)) triggerGameOver();
+        if(!obstacles[i].passed && obstacles[i].x < robot.x) { score++; obstacles[i].passed = true; document.getElementById("score-ui").innerText = score.toString().padStart(3, '0'); }
+        if(obstacles[i].x + obstacles[i].w < 0) obstacles.splice(i, 1);
     }
-    requestAnimationFrame(update);
+    if(robot.y + robot.h > canvas.height || robot.y < -50) triggerGameOver();
+    frame++;
 }
 
-window.addEventListener("keydown", (e) => {
-    if (e.code === "Space" && robot.grounded && gameActive) {
-        robot.dy = -robot.jumpForce;
-    }
-});
+function draw() {
+    ctx.fillStyle = "#02020a";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#fff";
+    stars.forEach(s => { s.x -= s.s * 0.5; if(s.x < 0) s.x = canvas.width; ctx.fillRect(s.x, s.y, s.size, s.size); });
+    
+    if(!gameRunning) { requestAnimationFrame(draw); return; }
 
-// Start pehli baar
-startCountdown();
+    robot.trail.forEach((t, i) => {
+        ctx.fillStyle = t.type === 'thrust' ? `rgba(255, 255, 255, ${i/15})` : `rgba(0, 242, 255, ${i/15})`;
+        ctx.beginPath(); ctx.arc(t.x, t.y, i/3, 0, Math.PI*2); ctx.fill();
+    });
+
+    obstacles.forEach(o => {
+        ctx.fillStyle = "rgba(255, 0, 255, 0.2)";
+        ctx.fillRect(o.x, 0, o.w, o.top);
+        ctx.fillRect(o.x, o.bottom, o.w, canvas.height - o.bottom);
+        ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 2;
+        ctx.strokeRect(o.x, 0, o.w, o.top);
+        ctx.strokeRect(o.x, o.bottom, o.w, canvas.height - o.bottom);
+    });
+
+    ctx.save();
+    ctx.translate(robot.x + robot.w/2, robot.y + robot.h/2);
+    ctx.rotate(robot.velY * 0.05);
+    ctx.fillStyle = "#00f2ff"; ctx.font = "bold 10px Orbitron"; ctx.textAlign = "center";
+    ctx.fillText(customRobotName.toUpperCase(), 0, -25);
+    ctx.fillStyle = "#00f2ff"; ctx.beginPath(); ctx.roundRect(-22, 10, 44, 7, 5); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.fillRect(-12, -18, 24, 28);
+    ctx.fillStyle = "#000"; ctx.fillRect(-8, -12, 16, 10);
+    ctx.restore();
+    
+    update();
+    requestAnimationFrame(draw);
+}
+draw();
 </script>
 </body>
 </html>
