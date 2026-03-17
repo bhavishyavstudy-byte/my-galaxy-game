@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Galaxy Skater - Nebula Edition</title>
+    <title>Neon Galaxy Skater - Pro Board Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         * { box-sizing: border-box; touch-action: manipulation; }
@@ -71,10 +71,9 @@ nameInput.value = customRobotName;
 document.getElementById("highscore-ui").innerText = "BEST: " + highScore.toString().padStart(3, '0');
 
 let gravity, jump, gapSize, spawnRate;
-let robot = { x: 70, y: 250, w: 40, h: 35, velY: 0, trail: [], thrustActive: 0, floatAnim: 0 };
+let robot = { x: 70, y: 250, w: 40, h: 45, velY: 0, trail: [], thrustActive: 0, floatAnim: 0 };
 let obstacles = [], stars = [], clouds = [], frame = 0, score = 0, gameOver = false, gameRunning = false, canRevive = true, shake = 0;
 
-// Init Background
 for(let i=0; i<60; i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, s: Math.random()*2 });
 for(let i=0; i<3; i++) clouds.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 80+Math.random()*100, s: 0.2+Math.random()*0.3 });
 
@@ -152,4 +151,11 @@ function update() {
     if(robot.trail.length > 15) robot.trail.shift();
     if(robot.thrustActive > 0) robot.thrustActive--;
     if(frame % spawnRate === 0) {
-        let pos = Math.random() * (canvas.
+        let pos = Math.random() * (canvas.height - gapSize - 140) + 70;
+        obstacles.push({ x: canvas.width, top: pos, bottom: pos + gapSize, w: 60, passed: false });
+    }
+    for (let i = obstacles.length - 1; i >= 0; i--) {
+        obstacles[i].x -= (3 + score * 0.05);
+        if(robot.x + 10 < obstacles[i].x + obstacles[i].w && robot.x + robot.w - 10 > obstacles[i].x && (robot.y + 5 < obstacles[i].top || robot.y + robot.h - 5 > obstacles[i].bottom)) triggerGameOver();
+        if(!obstacles[i].passed && obstacles[i].x < robot.x) { 
+            score++; obstacles[i].passed = true; document.getElementById("score-ui").innerText = score.toString().padStart(3, '0');
