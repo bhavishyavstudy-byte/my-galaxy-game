@@ -2,30 +2,24 @@
 <html>
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Neon Galaxy Skater - Enhanced</title>
+    <title>Neon Galaxy Skater - Nebula Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;900&display=swap');
         * { box-sizing: border-box; touch-action: manipulation; }
         body { margin: 0; overflow: hidden; background: #02020a; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: 'Orbitron', sans-serif; }
         canvas { max-width: 100vw; max-height: 100vh; border: 2px solid #00f2ff; box-shadow: 0 0 30px rgba(0, 242, 255, 0.2); border-radius: 10px; background: #000; }
         .overlay { position: absolute; width: 100%; max-width: 400px; height: 100%; max-height: 600px; background: radial-gradient(circle, rgba(0,20,40,0.98) 0%, rgba(2,2,10,1) 100%); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; color: white; padding: 20px; }
-        
-        /* Animation for the Logo */
         .logo-wrap { position: relative; width: 120px; height: 120px; margin-bottom: 10px; animation: float 4s ease-in-out infinite; }
         .skater-icon { width: 70px; height: 70px; border: 5px solid #00f2ff; border-right-color: transparent; border-radius: 50%; position: absolute; top: 15px; left: 25px; box-shadow: 0 0 20px #00f2ff; transform: rotate(-20deg); }
         .skater-icon::after { content: ''; position: absolute; width: 90px; height: 8px; background: #ff00ff; bottom: -15px; left: -10px; border-radius: 10px; box-shadow: 0 0 20px #ff00ff; }
-        
         @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-15px); } }
-        
         h1 { font-size: 24px; margin: 5px 0; color: #00f2ff; text-shadow: 0 0 10px #00f2ff; }
         .developer-tag { font-size: 10px; letter-spacing: 3px; color: #ff00ff; margin-bottom: 15px; font-weight: 900; text-shadow: 0 0 10px #ff00ff; }
         .btn { background: #00f2ff; color: #000; padding: 12px 0; border: none; font-family: 'Orbitron'; font-weight: 900; cursor: pointer; margin: 5px; border-radius: 8px; transition: 0.3s; font-size: 13px; width: 85%; max-width: 220px; box-shadow: 0 4px 0 #008ba3; }
         .btn:active { transform: translateY(3px); box-shadow: none; }
-        
         #robot-name-input { background: rgba(255,255,255,0.05); border: 2px solid #ff00ff; color: #fff; padding: 10px; font-family: 'Orbitron'; text-align: center; border-radius: 8px; width: 80%; max-width: 210px; font-size: 16px; margin-bottom: 10px; }
         #score-ui { position: absolute; top: 15px; color: #00f2ff; font-size: 24px; font-weight: 900; z-index: 5; text-shadow: 0 0 10px #00f2ff; }
         #highscore-ui { position: absolute; top: 45px; color: #ff00ff; font-size: 12px; font-weight: 900; z-index: 5; text-shadow: 0 0 5px #ff00ff; }
-        .level-label { font-size: 10px; color: #aaa; margin-top: 10px; margin-bottom: 5px; }
     </style>
 </head>
 <body>
@@ -35,7 +29,6 @@
         <h1>GALAXY SKATER</h1>
         <div class="developer-tag">BY BHAVISHYA KUMAR</div>
         <input type="text" id="robot-name-input" maxlength="12" placeholder="ROBOT ID">
-        <div class="level-label">SELECT DIFFICULTY</div>
         <button class="btn" style="background:#00ff88; box-shadow: 0 4px 0 #009e54;" onclick="startGame('easy')">EASY</button>
         <button class="btn" style="background:#00f2ff; box-shadow: 0 4px 0 #008ba3;" onclick="startGame('normal')">NORMAL</button>
         <button class="btn" style="background:#ff00ff; color: white; box-shadow: 0 4px 0 #9e009e;" onclick="startGame('hard')">HARD</button>
@@ -78,16 +71,14 @@ nameInput.value = customRobotName;
 document.getElementById("highscore-ui").innerText = "BEST: " + highScore.toString().padStart(3, '0');
 
 let gravity, jump, gapSize, spawnRate;
-let currentDifficulty = 'normal';
-
 let robot = { x: 70, y: 250, w: 40, h: 35, velY: 0, trail: [], thrustActive: 0, floatAnim: 0 };
-let obstacles = [], stars = [], frame = 0, score = 0, gameOver = false, gameRunning = false, canRevive = true;
-let shake = 0;
+let obstacles = [], stars = [], clouds = [], frame = 0, score = 0, gameOver = false, gameRunning = false, canRevive = true, shake = 0;
 
+// Init Background
 for(let i=0; i<60; i++) stars.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, size: Math.random()*2, s: Math.random()*2 });
+for(let i=0; i<3; i++) clouds.push({ x: Math.random()*canvas.width, y: Math.random()*canvas.height, r: 80+Math.random()*100, s: 0.2+Math.random()*0.3 });
 
 function setDifficulty(level) {
-    currentDifficulty = level;
     if(level === 'easy') { gravity = 0.22; jump = -5.8; gapSize = 220; spawnRate = 110; } 
     else if(level === 'normal') { gravity = 0.30; jump = -6.8; gapSize = 190; spawnRate = 95; } 
     else { gravity = 0.38; jump = -7.8; gapSize = 165; spawnRate = 85; }
@@ -118,14 +109,12 @@ canvas.addEventListener("mousedown", handleInput);
 function triggerGameOver() {
     if (gameOver) return;
     gameOver = true;
-    shake = 15; // Screen shake effect
-    
+    shake = 15;
     if (score > highScore) {
         highScore = score;
         localStorage.setItem("galaxyHighScore", highScore);
         document.getElementById("highscore-ui").innerText = "BEST: " + highScore.toString().padStart(3, '0');
     }
-
     document.getElementById("current-score-text").innerText = score;
     document.getElementById("best-score-text").innerText = highScore;
     deathScreen.style.display = "flex";
@@ -135,144 +124,32 @@ function triggerGameOver() {
 }
 
 function startAdTimer() {
-    menuButtons.style.display = "none";
-    adBox.style.display = "block";
-    let t = 3;
-    document.getElementById("timer-num").innerText = t;
+    menuButtons.style.display = "none"; adBox.style.display = "block";
+    let t = 3; document.getElementById("timer-num").innerText = t;
     let inv = setInterval(() => {
-        t--;
-        document.getElementById("timer-num").innerText = t;
+        t--; document.getElementById("timer-num").innerText = t;
         if(t <= 0) { clearInterval(inv); revivePlayer(); }
     }, 1000);
 }
 
 function revivePlayer() {
     deathScreen.style.display = "none";
-    robot.y = 250;
-    robot.velY = 0;
-    obstacles = []; 
-    gameOver = false; 
-    canRevive = false; 
+    robot.y = 250; robot.velY = 0; obstacles = []; gameOver = false; canRevive = false; 
 }
 
 function hardReset() {
     deathScreen.style.display = "none";
-    score = 0; 
-    document.getElementById("score-ui").innerText = "000";
-    robot.y = 250; robot.velY = 0; robot.trail = []; obstacles = []; frame = 0; 
-    gameOver = false; 
-    canRevive = true;
+    score = 0; document.getElementById("score-ui").innerText = "000";
+    robot.y = 250; robot.velY = 0; robot.trail = []; obstacles = []; frame = 0; gameOver = false; canRevive = true;
 }
 
 function update() {
     if(!gameRunning || gameOver) return;
-    
     robot.velY += gravity;
     robot.y += robot.velY;
-    
-    // Robot floating animation update
     robot.floatAnim += 0.15;
-    
     robot.trail.push({x: robot.x, y: robot.y + 25, type: robot.thrustActive > 0 ? 'thrust' : 'normal'});
     if(robot.trail.length > 15) robot.trail.shift();
     if(robot.thrustActive > 0) robot.thrustActive--;
-    
     if(frame % spawnRate === 0) {
-        let pos = Math.random() * (canvas.height - gapSize - 140) + 70;
-        obstacles.push({ x: canvas.width, top: pos, bottom: pos + gapSize, w: 60, passed: false });
-    }
-    
-    for (let i = obstacles.length - 1; i >= 0; i--) {
-        obstacles[i].x -= (3 + score * 0.05);
-        if(robot.x + 10 < obstacles[i].x + obstacles[i].w && robot.x + robot.w - 10 > obstacles[i].x && (robot.y + 5 < obstacles[i].top || robot.y + robot.h - 5 > obstacles[i].bottom)) triggerGameOver();
-        if(!obstacles[i].passed && obstacles[i].x < robot.x) { 
-            score++; 
-            obstacles[i].passed = true; 
-            document.getElementById("score-ui").innerText = score.toString().padStart(3, '0'); 
-        }
-        if(obstacles[i].x + obstacles[i].w < -50) obstacles.splice(i, 1);
-    }
-    
-    if(robot.y + robot.h > canvas.height || robot.y < -50) triggerGameOver();
-    if(shake > 0) shake--;
-    frame++;
-}
-
-function draw() {
-    ctx.save();
-    if(shake > 0) ctx.translate(Math.random()*shake - shake/2, Math.random()*shake - shake/2);
-    
-    ctx.fillStyle = "#02020a";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // Stars
-    ctx.fillStyle = "#fff";
-    stars.forEach(s => { s.x -= s.s * 0.5; if(s.x < 0) s.x = canvas.width; ctx.fillRect(s.x, s.y, s.size, s.size); });
-    
-    if(!gameRunning) { ctx.restore(); requestAnimationFrame(draw); return; }
-
-    // Trail with Glow
-    robot.trail.forEach((t, i) => {
-        ctx.shadowBlur = t.type === 'thrust' ? 15 : 0;
-        ctx.shadowColor = "#00f2ff";
-        ctx.fillStyle = t.type === 'thrust' ? `rgba(255, 255, 255, ${i/15})` : `rgba(0, 242, 255, ${i/15})`;
-        ctx.beginPath(); ctx.arc(t.x, t.y, i/3, 0, Math.PI*2); ctx.fill();
-    });
-    ctx.shadowBlur = 0;
-
-    // Obstacles
-    obstacles.forEach(o => {
-        ctx.fillStyle = "rgba(255, 0, 255, 0.15)";
-        ctx.fillRect(o.x, 0, o.w, o.top);
-        ctx.fillRect(o.x, o.bottom, o.w, canvas.height - o.bottom);
-        ctx.strokeStyle = "#ff00ff"; ctx.lineWidth = 3;
-        ctx.strokeRect(o.x, 0, o.w, o.top);
-        ctx.strokeRect(o.x, o.bottom, o.w, canvas.height - o.bottom);
-    });
-
-    // --- DRAW ROBOT & SKATEBOARD ---
-    ctx.save();
-    // Hovering effect math
-    let hoverY = Math.sin(robot.floatAnim) * 4;
-    ctx.translate(robot.x + robot.w/2, robot.y + robot.h/2 + hoverY);
-    
-    // Rotation based on velocity
-    let rotation = robot.velY * 0.04;
-    ctx.rotate(rotation);
-
-    // Name Tag
-    ctx.fillStyle = "#00f2ff"; ctx.font = "900 10px Orbitron"; ctx.textAlign = "center";
-    ctx.fillText(customRobotName.toUpperCase(), 0, -28);
-
-    // Neon Skateboard (Animated with rotation)
-    ctx.shadowBlur = 10; ctx.shadowColor = "#ff00ff";
-    ctx.fillStyle = "#ff00ff";
-    ctx.beginPath();
-    ctx.roundRect(-25, 12, 50, 6, 4); // Board body
-    ctx.fill();
-    
-    // Skateboard Wheels (Neon cyan)
-    ctx.shadowColor = "#00f2ff";
-    ctx.fillStyle = "#00f2ff";
-    ctx.beginPath(); ctx.arc(-15, 18, 3, 0, Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.arc(15, 18, 3, 0, Math.PI*2); ctx.fill();
-
-    // Robot Body
-    ctx.shadowBlur = 5; ctx.shadowColor = "#00f2ff";
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(-12, -15, 24, 25); // Main casing
-    
-    // Robot Eye (Flickering effect)
-    ctx.fillStyle = (frame % 20 > 2) ? "#00f2ff" : "#005577";
-    ctx.fillRect(-8, -10, 16, 8);
-    
-    ctx.restore();
-    ctx.restore();
-    
-    update();
-    requestAnimationFrame(draw);
-}
-draw();
-</script>
-</body>
-</html>
+        let pos = Math.random() * (canvas.
